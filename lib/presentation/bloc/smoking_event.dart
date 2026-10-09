@@ -57,3 +57,30 @@ final class DeleteSmokingRecord extends SmokingEvent {
 final class DeleteLatestSmokingRecord extends SmokingEvent {
   const DeleteLatestSmokingRecord();
 }
+
+/// Событие полной очистки базы данных.
+final class ClearAllSmokingRecords extends SmokingEvent {
+  const ClearAllSmokingRecords();
+}
+
+/// Событие импорта данных из JSON.
+final class ImportSmokingRecordsFromJson extends SmokingEvent {
+  final String jsonContent;
+  final bool replaceExisting;
+
+  const ImportSmokingRecordsFromJson({
+    required this.jsonContent,
+    this.replaceExisting = false,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImportSmokingRecordsFromJson &&
+          runtimeType == other.runtimeType &&
+          jsonContent == other.jsonContent &&
+          replaceExisting == other.replaceExisting;
+
+  @override
+  int get hashCode => Object.hash(runtimeType, jsonContent, replaceExisting);
+}

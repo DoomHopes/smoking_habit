@@ -20,4 +20,19 @@ abstract interface class SmokingRepository {
 
   /// Удалить запись по её уникальному идентификатору [id].
   Future<Result<void>> deleteRecord(int id);
+
+  /// Полностью очистить базу данных от всех записей.
+  Future<Result<void>> clearAllRecords();
+
+  /// Экспортировать все записи базы данных в форматированную JSON строку.
+  Future<Result<String>> exportRecordsToJson();
+
+  /// Импортировать записи из JSON строки.
+  ///
+  /// Если [replaceExisting] установлен в true, текущие данные будут заменены новыми.
+  /// Возвращает количество успешно импортированных записей.
+  Future<Result<int>> importRecordsFromJson(
+    String jsonContent, {
+    bool replaceExisting = false,
+  });
 }

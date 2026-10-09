@@ -37,6 +37,13 @@ class FakeLocalDataSource implements SmokingLocalDataSource {
   }
 
   @override
+  Future<void> insertAllRecords(List<SmokingRecordModel> items) async {
+    for (final item in items) {
+      records.add(item.copyWith(id: _idCounter++));
+    }
+  }
+
+  @override
   Future<void> updateRecord(SmokingRecordModel record) async {
     final idx = records.indexWhere((r) => r.id == record.id);
     if (idx != -1) records[idx] = record;
@@ -45,6 +52,11 @@ class FakeLocalDataSource implements SmokingLocalDataSource {
   @override
   Future<void> deleteRecord(int id) async {
     records.removeWhere((r) => r.id == id);
+  }
+
+  @override
+  Future<void> clearAllRecords() async {
+    records.clear();
   }
 }
 
@@ -183,6 +195,30 @@ void main() {
       final yearSummary = state.getPeriodSummary(StatsPeriod.year, now);
       expect(yearSummary.dataPoints.length, equals(12));
       expect(yearSummary.totalCount, equals(20));
+    });
+
+    test('ClearAllSmokingRecords очищает базу и выставляет пустой SmokingLoaded', () async {
+      bloc.add(const AddSmokingRecord(count: 2));
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      expect((bloc.state.value as SmokingLoaded).records.length, equals(1));
+
+      bloc.add(const ClearAllSmokingRecords());
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+
+      final state = bloc.state.value as SmokingLoaded;
+      expect(state.records.isEmpty, isTrue);
+      expect(state.totalCount, equals(0));
+    });
+
+    test('ImportSmokingRecordsFromJson импортирует записи', () async {
+      const jsonBackup = '{"records":[{"timestamp":"2026-10-09T10:00:00.000","count":5}]}';
+
+      bloc.add(const ImportSmokingRecordsFromJson(jsonContent: jsonBackup, replaceExisting: true));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = bloc.state.value as SmokingLoaded;
+      expect(state.records.length, equals(1));
+      expect(state.totalCount, equals(5));
     });
   });
 }

@@ -95,5 +95,20 @@ void main() {
       final all = await dataSource.getAllRecords();
       expect(all.isEmpty, isTrue);
     });
+
+    test('insertAllRecords и clearAllRecords работают корректно', () async {
+      final list = [
+        SmokingRecordModel(timestamp: t1, count: 2),
+        SmokingRecordModel(timestamp: t2, count: 4),
+      ];
+
+      await dataSource.insertAllRecords(list);
+      final all = await dataSource.getAllRecords();
+      expect(all.length, equals(2));
+
+      await dataSource.clearAllRecords();
+      final afterClear = await dataSource.getAllRecords();
+      expect(afterClear.isEmpty, isTrue);
+    });
   });
 }

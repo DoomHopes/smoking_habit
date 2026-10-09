@@ -14,9 +14,15 @@ abstract interface class SmokingLocalDataSource {
   /// Вставить новую запись и вернуть модель с обновленным ID.
   Future<SmokingRecordModel> insertRecord(SmokingRecordModel record);
 
+  /// Пакетная вставка списка записей.
+  Future<void> insertAllRecords(List<SmokingRecordModel> records);
+
   /// Обновить существующую запись в хранилище.
   Future<void> updateRecord(SmokingRecordModel record);
 
   /// Удалить запись по ID.
   Future<void> deleteRecord(int id);
+
+  /// Удалить абсолютно все записи из таблицы.
+  Future<void> clearAllRecords();
 }

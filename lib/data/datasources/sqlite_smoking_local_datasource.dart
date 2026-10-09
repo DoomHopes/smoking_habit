@@ -140,6 +140,37 @@ class SqliteSmokingLocalDataSource implements SmokingLocalDataSource {
     );
   }
 
+  @override
+  Future<void> insertAllRecords(List<SmokingRecordModel> records) async {
+    if (records.isEmpty) return;
+    final db = await database;
+
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final record in records) {
+        batch.insert(
+          tableName,
+          record.toMap(includeId: false),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  @override
+  Future<void> clearAllRecords() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete(tableName);
+      // Сброс autoincrement последовательности
+      await txn.rawDelete(
+        "DELETE FROM sqlite_sequence WHERE name = ?",
+        [tableName],
+      );
+    });
+  }
+
   /// Закрытие соединения с БД.
   Future<void> close() async {
     if (_databaseInstance != null && _databaseInstance!.isOpen) {

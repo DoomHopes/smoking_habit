@@ -32,6 +32,13 @@ class FakeLocalDataSource implements SmokingLocalDataSource {
   }
 
   @override
+  Future<void> insertAllRecords(List<SmokingRecordModel> items) async {
+    for (final item in items) {
+      records.add(item.copyWith(id: _idCounter++));
+    }
+  }
+
+  @override
   Future<void> updateRecord(SmokingRecordModel record) async {
     final idx = records.indexWhere((r) => r.id == record.id);
     if (idx != -1) records[idx] = record;
@@ -41,10 +48,15 @@ class FakeLocalDataSource implements SmokingLocalDataSource {
   Future<void> deleteRecord(int id) async {
     records.removeWhere((r) => r.id == id);
   }
+
+  @override
+  Future<void> clearAllRecords() async {
+    records.clear();
+  }
 }
 
 void main() {
-  testWidgets('Smoke test: добавление сигареты и переключение на экран статистики', (WidgetTester tester) async {
+  testWidgets('Smoke test: добавление сигареты, просмотр статистики и открытие экрана настроек', (WidgetTester tester) async {
     final fakeDataSource = FakeLocalDataSource();
     final repository = SmokingRepositoryImpl(fakeDataSource);
     final bloc = SmokingBloc(repository)..add(const LoadSmokingRecords());
@@ -68,11 +80,13 @@ void main() {
     expect(find.text('1'), findsWidgets);
     expect(find.text('История записей'), findsOneWidget);
 
-    // Переключаемся на вкладку "Статистика" в нижней панели навигации
-    final statsTab = find.text('Статистика');
-    expect(statsTab, findsOneWidget);
+    // Открываем боковое меню (Drawer)
+    var scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
+    await tester.pumpAndSettle();
 
-    await tester.tap(statsTab);
+    // Нажимаем на пункт "Статистика" в Drawer
+    await tester.tap(find.text('Статистика'));
     await tester.pumpAndSettle();
 
     // Проверяем, что заголовок изменился на "Статистика курения" и есть фильтры
@@ -81,11 +95,29 @@ void main() {
     expect(find.text('Месяц'), findsOneWidget);
     expect(find.text('6 мес.'), findsOneWidget);
     expect(find.text('Год'), findsOneWidget);
-    expect(find.text('Всего за период'), findsOneWidget);
 
-    // Переключаем фильтр на "Месяц"
-    await tester.tap(find.text('Месяц'));
+    // Открываем боковое меню и переходим в "Настройки"
+    scaffoldState = tester.state<ScaffoldState>(find.byType(Scaffold));
+    scaffoldState.openDrawer();
     await tester.pumpAndSettle();
-    expect(find.text('Динамика (месяц)'), findsOneWidget);
+
+    await tester.tap(find.text('Настройки'));
+    await tester.pumpAndSettle();
+
+    // Проверяем заголовок "Настройки" и разделы
+    expect(find.text('Настройки'), findsWidgets);
+    expect(find.text('Экспорт данных'), findsOneWidget);
+    expect(find.text('Импорт данных'), findsOneWidget);
+
+    // Прокручиваем до блока опасной зоны и очистки
+    await tester.scrollUntilVisible(
+      find.text('Очистить всю базу данных'),
+      100.0,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Очистить всю базу данных'), findsOneWidget);
   });
 }
+

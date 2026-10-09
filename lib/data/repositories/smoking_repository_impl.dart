@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import '../../core/error/failures.dart';
@@ -152,6 +153,135 @@ class SmokingRepositoryImpl implements SmokingRepository {
       return Result.failure(
         DatabaseFailure(
           'Не удалось удалить запись: $e',
+          error: e,
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<void>> clearAllRecords() async {
+    try {
+      _effectiveTalker.warning('Полная очистка всех записей из базы данных');
+      await _localDataSource.clearAllRecords();
+      _effectiveTalker.info('База данных успешно очищена');
+      return const Result.success(null);
+    } catch (e, stackTrace) {
+      _effectiveTalker.handle(e, stackTrace, 'Ошибка при очистке базы данных');
+      return Result.failure(
+        DatabaseFailure(
+          'Не удалось очистить базу данных: $e',
+          error: e,
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<String>> exportRecordsToJson() async {
+    try {
+      _effectiveTalker.info('Формирование JSON резервной копии базы данных');
+      final records = await _localDataSource.getAllRecords();
+
+      final exportMap = <String, dynamic>{
+        'version': 1,
+        'app': 'Smoking Habit',
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
+        'recordsCount': records.length,
+        'records': records.map((r) => r.toMap(includeId: false)).toList(),
+      };
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportMap);
+      _effectiveTalker.info(
+        'Экспорт завершен. Экспортировано записей: ${records.length}',
+      );
+      return Result.success(jsonString);
+    } catch (e, stackTrace) {
+      _effectiveTalker.handle(e, stackTrace, 'Ошибка экспорта данных в JSON');
+      return Result.failure(
+        DatabaseFailure(
+          'Не удалось экспортировать данные: $e',
+          error: e,
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<int>> importRecordsFromJson(
+    String jsonContent, {
+    bool replaceExisting = false,
+  }) async {
+    try {
+      _effectiveTalker.info(
+        'Импорт данных из JSON (замена существующих: $replaceExisting)',
+      );
+
+      final dynamic decoded = jsonDecode(jsonContent);
+      final List<dynamic> rawList;
+
+      if (decoded is Map<String, dynamic> && decoded.containsKey('records')) {
+        final recordsField = decoded['records'];
+        if (recordsField is List) {
+          rawList = recordsField;
+        } else {
+          return const Result.failure(
+            ValidationFailure('Поле "records" в JSON должно быть массивом'),
+          );
+        }
+      } else if (decoded is List) {
+        rawList = decoded;
+      } else {
+        return const Result.failure(
+          ValidationFailure('Некорректная структура JSON файла резервной копии'),
+        );
+      }
+
+      final modelsToInsert = <SmokingRecordModel>[];
+
+      for (int i = 0; i < rawList.length; i++) {
+        final item = rawList[i];
+        if (item is! Map<String, dynamic>) {
+          return Result.failure(
+            ValidationFailure('Элемент #$i в списке записей не является объектом'),
+          );
+        }
+
+        try {
+          final model = SmokingRecordModel.fromMap(item);
+          if (model.count <= 0) {
+            return Result.failure(
+              ValidationFailure(
+                'Запись #$i содержит некорректное количество сигарет (${model.count})',
+              ),
+            );
+          }
+          modelsToInsert.add(model);
+        } catch (e) {
+          return Result.failure(
+            ValidationFailure('Ошибка разбора записи #$i: $e'),
+          );
+        }
+      }
+
+      if (replaceExisting) {
+        await _localDataSource.clearAllRecords();
+      }
+
+      await _localDataSource.insertAllRecords(modelsToInsert);
+
+      _effectiveTalker.info(
+        'Успешно импортировано записей: ${modelsToInsert.length}',
+      );
+      return Result.success(modelsToInsert.length);
+    } catch (e, stackTrace) {
+      _effectiveTalker.handle(e, stackTrace, 'Ошибка при импорте данных из JSON');
+      return Result.failure(
+        ValidationFailure(
+          'Не удалось импортировать данные: $e',
           error: e,
           stackTrace: stackTrace,
         ),

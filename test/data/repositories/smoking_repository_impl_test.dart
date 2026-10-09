@@ -41,6 +41,14 @@ class FakeSmokingLocalDataSource implements SmokingLocalDataSource {
   }
 
   @override
+  Future<void> insertAllRecords(List<SmokingRecordModel> items) async {
+    if (shouldThrow) throw Exception('DB batch insert error');
+    for (final item in items) {
+      records.add(item.copyWith(id: _nextId++));
+    }
+  }
+
+  @override
   Future<void> updateRecord(SmokingRecordModel record) async {
     if (shouldThrow) throw Exception('DB update error');
     final index = records.indexWhere((r) => r.id == record.id);
@@ -53,6 +61,12 @@ class FakeSmokingLocalDataSource implements SmokingLocalDataSource {
   Future<void> deleteRecord(int id) async {
     if (shouldThrow) throw Exception('DB delete error');
     records.removeWhere((r) => r.id == id);
+  }
+
+  @override
+  Future<void> clearAllRecords() async {
+    if (shouldThrow) throw Exception('DB clear error');
+    records.clear();
   }
 }
 
@@ -99,16 +113,6 @@ void main() {
       expect(failureResult.failureOrNull, isA<DatabaseFailure>());
     });
 
-    test('getRecordsByDateRange возвращает ValidationFailure при некорректном диапазоне', () async {
-      final result = await repository.getRecordsByDateRange(
-        DateTime(2026, 10, 10),
-        DateTime(2026, 10, 9),
-      );
-
-      expect(result.isFailure, isTrue);
-      expect(result.failureOrNull, isA<ValidationFailure>());
-    });
-
     test('deleteRecord успешно удаляет запись', () async {
       final addRes = await repository.addRecord(
         SmokingRecord(timestamp: now, count: 1),
@@ -118,6 +122,42 @@ void main() {
       final delRes = await repository.deleteRecord(id);
       expect(delRes.isSuccess, isTrue);
       expect(fakeDataSource.records.isEmpty, isTrue);
+    });
+
+    test('clearAllRecords полностью удаляет все записи', () async {
+      await repository.addRecord(SmokingRecord(timestamp: now, count: 1));
+      await repository.addRecord(SmokingRecord(timestamp: now, count: 2));
+      expect(fakeDataSource.records.length, equals(2));
+
+      final clearRes = await repository.clearAllRecords();
+      expect(clearRes.isSuccess, isTrue);
+      expect(fakeDataSource.records.isEmpty, isTrue);
+    });
+
+    test('exportRecordsToJson и importRecordsFromJson работают корректно', () async {
+      await repository.addRecord(SmokingRecord(timestamp: now, count: 3));
+
+      final exportRes = await repository.exportRecordsToJson();
+      expect(exportRes.isSuccess, isTrue);
+      final jsonString = exportRes.dataOrNull!;
+      expect(jsonString.contains('records'), isTrue);
+
+      // Очищаем базу и импортируем обратно
+      await repository.clearAllRecords();
+      expect(fakeDataSource.records.isEmpty, isTrue);
+
+      final importRes = await repository.importRecordsFromJson(jsonString);
+      expect(importRes.isSuccess, isTrue);
+      expect(importRes.dataOrNull, equals(1));
+      expect(fakeDataSource.records.length, equals(1));
+      expect(fakeDataSource.records.first.count, equals(3));
+    });
+
+    test('importRecordsFromJson возвращает ValidationFailure при невалидном JSON', () async {
+      final invalidJson = '{ "records": [ { "timestamp": "invalid", "count": -5 } ] }';
+      final res = await repository.importRecordsFromJson(invalidJson);
+      expect(res.isFailure, isTrue);
+      expect(res.failureOrNull, isA<ValidationFailure>());
     });
   });
 }

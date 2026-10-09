@@ -1,30 +1,70 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:smoking_habit/data/datasources/smoking_local_datasource.dart';
+import 'package:smoking_habit/data/models/smoking_record_model.dart';
+import 'package:smoking_habit/data/repositories/smoking_repository_impl.dart';
 import 'package:smoking_habit/main.dart';
+import 'package:smoking_habit/presentation/bloc/smoking_bloc.dart';
+import 'package:smoking_habit/presentation/bloc/smoking_event.dart';
+
+class FakeLocalDataSource implements SmokingLocalDataSource {
+  final List<SmokingRecordModel> records = [];
+  int _idCounter = 1;
+
+  @override
+  Future<List<SmokingRecordModel>> getAllRecords() async {
+    return List.from(records)..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  }
+
+  @override
+  Future<List<SmokingRecordModel>> getRecordsByDateRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    return records;
+  }
+
+  @override
+  Future<SmokingRecordModel> insertRecord(SmokingRecordModel record) async {
+    final saved = record.copyWith(id: _idCounter++);
+    records.add(saved);
+    return saved;
+  }
+
+  @override
+  Future<void> updateRecord(SmokingRecordModel record) async {
+    final idx = records.indexWhere((r) => r.id == record.id);
+    if (idx != -1) records[idx] = record;
+  }
+
+  @override
+  Future<void> deleteRecord(int id) async {
+    records.removeWhere((r) => r.id == id);
+  }
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Smoke test: рендеринг экрана и добавление сигареты', (WidgetTester tester) async {
+    final fakeDataSource = FakeLocalDataSource();
+    final repository = SmokingRepositoryImpl(fakeDataSource);
+    final bloc = SmokingBloc(repository)..add(const LoadSmokingRecords());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(SmokingHabitApp(smokingBloc: bloc));
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Проверяем отображение заголовка и статистики
+    expect(find.text('Учёт выкуренных сигарет'), findsOneWidget);
+    expect(find.text('Сегодня'), findsOneWidget);
+    expect(find.text('Всего'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Нажимаем кнопку добавления выкуренной сигареты
+    final addButton = find.text('Выкурил сигарету (+1)');
+    expect(addButton, findsOneWidget);
+
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    // Проверяем, что счетчики обновились до 1
+    expect(find.text('1'), findsNWidgets(2)); // В карточке сегодня и всего
+    expect(find.text('История записей'), findsOneWidget);
   });
 }

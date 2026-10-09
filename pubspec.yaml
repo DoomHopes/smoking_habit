@@ -33,6 +33,7 @@ dependencies:
 
   # State management
   bloc_signals: ^1.5.0
+  bloc_signals_flutter: ^1.3.3
 
   # Local Database
   sqflite: ^2.4.1

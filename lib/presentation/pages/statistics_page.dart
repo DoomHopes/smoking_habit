@@ -5,7 +5,7 @@ import '../../domain/entities/stats_period.dart';
 import '../bloc/smoking_bloc.dart';
 import '../bloc/smoking_state.dart';
 import '../widgets/responsive_content_container.dart';
-import '../widgets/smoking_bar_chart_card.dart';
+import '../widgets/smoking_line_chart_card.dart';
 
 /// Экран подробной аналитики и графиков выкуренных сигарет по периодам.
 class StatisticsPage extends StatefulWidget {
@@ -114,7 +114,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         const SizedBox(height: 20),
 
                         // График за период
-                        SmokingBarChartCard(
+                        SmokingLineChartCard(
                           title:
                               'Динамика (${_selectedPeriod.label.toLowerCase()})',
                           dailySummaries: summary.dataPoints,

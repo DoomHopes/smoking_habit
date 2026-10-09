@@ -19,9 +19,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _openTalkerScreen(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TalkerScreen(talker: talker),
-      ),
+      MaterialPageRoute<void>(builder: (_) => TalkerScreen(talker: talker)),
     );
   }
 
@@ -40,11 +38,11 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   String get _appBarTitle => switch (_currentIndex) {
-        0 => 'Учёт сигарет',
-        1 => 'Статистика курения',
-        2 => 'Настройки',
-        _ => 'Smoking Habit',
-      };
+    0 => 'Учёт сигарет',
+    1 => 'Статистика курения',
+    2 => 'Настройки',
+    _ => 'Smoking Habit',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -82,13 +80,22 @@ class _MainScreenState extends State<MainScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: colorScheme.primaryContainer,
-                  child: Icon(
-                    Icons.smoke_free_rounded,
-                    size: 32,
-                    color: colorScheme.onPrimaryContainer,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/icons/app_icon.png',
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => CircleAvatar(
+                      radius: 28,
+                      backgroundColor: colorScheme.primaryContainer,
+                      child: Icon(
+                        Icons.smoke_free_rounded,
+                        size: 32,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -136,11 +143,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          HomePage(),
-          StatisticsPage(),
-          SettingsPage(),
-        ],
+        children: const [HomePage(), StatisticsPage(), SettingsPage()],
       ),
     );
   }

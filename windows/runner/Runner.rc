@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "smoking_habit" "\0"
+            VALUE "FileDescription", "Smoking Habit - Учёт и контроль курения" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "smoking_habit" "\0"
+            VALUE "InternalName", "Smoking Habit" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "smoking_habit.exe" "\0"
-            VALUE "ProductName", "smoking_habit" "\0"
+            VALUE "ProductName", "Smoking Habit" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

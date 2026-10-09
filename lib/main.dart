@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import 'core/logging/app_talker.dart';
+import 'core/services/desktop_auto_start_service.dart';
 import 'core/services/desktop_tray_service.dart';
 import 'data/datasources/sqlite_smoking_local_datasource.dart';
 import 'data/repositories/smoking_repository_impl.dart';
@@ -35,6 +36,10 @@ void main() async {
   // Инициализация сервиса системного трея и оконного менеджера
   final trayService = DesktopTrayService(smokingBloc: smokingBloc);
   await trayService.initialize();
+
+  // Инициализация сервиса автозапуска при старте ОС
+  final autoStartService = DesktopAutoStartService();
+  await autoStartService.initialize();
 
   runApp(
     SmokingHabitApp(smokingBloc: smokingBloc),

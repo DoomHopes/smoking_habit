@@ -2,18 +2,53 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/services/auto_start_service.dart';
+import '../../core/services/desktop_auto_start_service.dart';
 import '../bloc/smoking_bloc.dart';
 import '../bloc/smoking_event.dart';
 import '../bloc/smoking_state.dart';
 import '../widgets/responsive_content_container.dart';
 
-/// Страница настроек приложения и управления базой данных (очистка, экспорт, импорт).
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+/// Страница настроек приложения, управления базой данных и автозапуском системы.
+class SettingsPage extends StatefulWidget {
+  final AutoStartService? autoStartService;
+
+  const SettingsPage({
+    super.key,
+    this.autoStartService,
+  });
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  AutoStartService get _autoStartService =>
+      widget.autoStartService ?? DesktopAutoStartService();
+
+  bool _isAutoStartEnabled = false;
+  bool _isLoadingAutoStart = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoStartStatus();
+  }
+
+  Future<void> _loadAutoStartStatus() async {
+    final enabled = await _autoStartService.isEnabled();
+    if (mounted) {
+      setState(() {
+        _isAutoStartEnabled = enabled;
+        _isLoadingAutoStart = false;
+      });
+    }
+  }
 
   Future<void> _exportToFile(BuildContext context, SmokingBloc bloc) async {
     final result = await bloc.repository.exportRecordsToJson();
@@ -324,6 +359,72 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Раздел Системы и автозапуска (десктоп)
+              if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) ...[
+                Text(
+                  'Система и автозапуск',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: SwitchListTile(
+                    secondary: CircleAvatar(
+                      backgroundColor: colorScheme.primaryContainer,
+                      child: Icon(
+                        Icons.rocket_launch_rounded,
+                        color: colorScheme.onPrimaryContainer,
+                        size: 20,
+                      ),
+                    ),
+                    title: const Text('Запуск при старте Windows'),
+                    subtitle: const Text(
+                      'Автоматически запускать приложение в трее при входе в систему',
+                    ),
+                    value: _isAutoStartEnabled,
+                    onChanged: _isLoadingAutoStart
+                        ? null
+                        : (bool value) async {
+                            try {
+                              await _autoStartService.setEnabled(value);
+                              setState(() => _isAutoStartEnabled = value);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      value
+                                          ? 'Автозапуск при старте Windows включен'
+                                          : 'Автозапуск при старте Windows выключен',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Ошибка настройки автозапуска: $e'),
+                                    backgroundColor: Theme.of(context).colorScheme.error,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Раздел Экспорта
               Text(

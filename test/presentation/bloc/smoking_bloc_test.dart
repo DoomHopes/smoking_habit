@@ -3,6 +3,7 @@ import 'package:smoking_habit/data/datasources/smoking_local_datasource.dart';
 import 'package:smoking_habit/data/models/smoking_record_model.dart';
 import 'package:smoking_habit/data/repositories/smoking_repository_impl.dart';
 import 'package:smoking_habit/domain/entities/smoking_record.dart';
+import 'package:smoking_habit/domain/entities/stats_period.dart';
 import 'package:smoking_habit/presentation/bloc/smoking_bloc.dart';
 import 'package:smoking_habit/presentation/bloc/smoking_event.dart';
 import 'package:smoking_habit/presentation/bloc/smoking_state.dart';
@@ -126,6 +127,62 @@ void main() {
       final stateAfter = bloc.state.value as SmokingLoaded;
       expect(stateAfter.records.length, equals(1));
       expect(stateAfter.totalCount, equals(1));
+    });
+
+    test('SmokingLoaded корректно формирует срез last7DaysSummary и averagePerDay', () async {
+      final now = DateTime.now();
+      final day1 = now.subtract(const Duration(days: 1));
+      final day2 = now.subtract(const Duration(days: 2));
+
+      await repository.addRecord(SmokingRecord(timestamp: now, count: 2));
+      await repository.addRecord(SmokingRecord(timestamp: day1, count: 3));
+      await repository.addRecord(SmokingRecord(timestamp: day2, count: 5));
+
+      bloc.add(const LoadSmokingRecords());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = bloc.state.value as SmokingLoaded;
+      expect(state.last7DaysSummary.length, equals(7));
+      expect(state.last7DaysSummary.last.isToday, isTrue);
+      expect(state.last7DaysSummary.last.count, equals(2));
+      expect(state.totalCount, equals(10));
+      expect(state.averagePerDayLast7Days, closeTo(10 / 7.0, 0.01));
+      expect(state.maxCountInLast7Days, equals(5));
+    });
+
+    test('getPeriodSummary корректно рассчитывает данные для всех периодов', () async {
+      final now = DateTime(2026, 10, 9, 12, 0);
+      final monthAgo = DateTime(2026, 9, 15, 12, 0);
+      final threeMonthsAgo = DateTime(2026, 7, 10, 12, 0);
+
+      await repository.addRecord(SmokingRecord(timestamp: now, count: 4));
+      await repository.addRecord(SmokingRecord(timestamp: monthAgo, count: 6));
+      await repository.addRecord(SmokingRecord(timestamp: threeMonthsAgo, count: 10));
+
+      bloc.add(const LoadSmokingRecords());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = bloc.state.value as SmokingLoaded;
+
+      // Тест недели
+      final weekSummary = state.getPeriodSummary(StatsPeriod.week, now);
+      expect(weekSummary.dataPoints.length, equals(7));
+      expect(weekSummary.totalCount, equals(4));
+
+      // Тест месяца
+      final monthSummary = state.getPeriodSummary(StatsPeriod.month, now);
+      expect(monthSummary.dataPoints.length, equals(30));
+      expect(monthSummary.totalCount, equals(10)); // 4 (сегодня) + 6 (24 дня назад)
+
+      // Тест 6 месяцев
+      final sixMonthsSummary = state.getPeriodSummary(StatsPeriod.sixMonths, now);
+      expect(sixMonthsSummary.dataPoints.length, equals(6));
+      expect(sixMonthsSummary.totalCount, equals(20)); // 4 + 6 + 10
+
+      // Тест года
+      final yearSummary = state.getPeriodSummary(StatsPeriod.year, now);
+      expect(yearSummary.dataPoints.length, equals(12));
+      expect(yearSummary.totalCount, equals(20));
     });
   });
 }

@@ -8,7 +8,7 @@ import 'data/datasources/sqlite_smoking_local_datasource.dart';
 import 'data/repositories/smoking_repository_impl.dart';
 import 'presentation/bloc/smoking_bloc.dart';
 import 'presentation/bloc/smoking_event.dart';
-import 'presentation/pages/home_page.dart';
+import 'presentation/pages/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +70,7 @@ class SmokingHabitApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
         ),
-        home: const HomePage(),
+        home: const MainScreen(),
       ),
     );
   }

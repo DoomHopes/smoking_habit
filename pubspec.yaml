@@ -44,6 +44,9 @@ dependencies:
   # Logging
   talker_flutter: ^4.6.1
 
+  # Charts
+  fl_chart: ^0.70.2
+
   # Annotations
   meta: ^1.15.0
 

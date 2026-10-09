@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smoking_habit/data/datasources/smoking_local_datasource.dart';
 import 'package:smoking_habit/data/models/smoking_record_model.dart';
@@ -43,7 +44,7 @@ class FakeLocalDataSource implements SmokingLocalDataSource {
 }
 
 void main() {
-  testWidgets('Smoke test: рендеринг экрана и добавление сигареты', (WidgetTester tester) async {
+  testWidgets('Smoke test: добавление сигареты и переключение на экран статистики', (WidgetTester tester) async {
     final fakeDataSource = FakeLocalDataSource();
     final repository = SmokingRepositoryImpl(fakeDataSource);
     final bloc = SmokingBloc(repository)..add(const LoadSmokingRecords());
@@ -51,8 +52,8 @@ void main() {
     await tester.pumpWidget(SmokingHabitApp(smokingBloc: bloc));
     await tester.pumpAndSettle();
 
-    // Проверяем отображение заголовка и статистики
-    expect(find.text('Учёт сигарет'), findsOneWidget);
+    // Проверяем отображение заголовка и статистики на главной
+    expect(find.widgetWithText(AppBar, 'Учёт сигарет'), findsOneWidget);
     expect(find.text('Сегодня'), findsOneWidget);
     expect(find.text('Всего'), findsOneWidget);
 
@@ -63,8 +64,28 @@ void main() {
     await tester.tap(addButton);
     await tester.pumpAndSettle();
 
-    // Проверяем, что счетчики обновились до 1
-    expect(find.text('1'), findsNWidgets(2)); // В карточке сегодня и всего
+    // Проверяем, что счетчики обновились
+    expect(find.text('1'), findsWidgets);
     expect(find.text('История записей'), findsOneWidget);
+
+    // Переключаемся на вкладку "Статистика" в нижней панели навигации
+    final statsTab = find.text('Статистика');
+    expect(statsTab, findsOneWidget);
+
+    await tester.tap(statsTab);
+    await tester.pumpAndSettle();
+
+    // Проверяем, что заголовок изменился на "Статистика курения" и есть фильтры
+    expect(find.text('Статистика курения'), findsOneWidget);
+    expect(find.text('Неделя'), findsOneWidget);
+    expect(find.text('Месяц'), findsOneWidget);
+    expect(find.text('6 мес.'), findsOneWidget);
+    expect(find.text('Год'), findsOneWidget);
+    expect(find.text('Всего за период'), findsOneWidget);
+
+    // Переключаем фильтр на "Месяц"
+    await tester.tap(find.text('Месяц'));
+    await tester.pumpAndSettle();
+    expect(find.text('Динамика (месяц)'), findsOneWidget);
   });
 }

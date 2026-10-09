@@ -1,5 +1,8 @@
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:talker_flutter/talker_flutter.dart';
+
+import '../../core/logging/app_talker.dart';
 import '../../domain/entities/smoking_record.dart';
 import '../bloc/smoking_bloc.dart';
 import '../bloc/smoking_event.dart';
@@ -11,6 +14,14 @@ import '../widgets/smoking_summary_card.dart';
 /// Главный экран приложения для учёта выкуренных сигарет.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
+
+  void _openTalkerScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TalkerScreen(talker: talker),
+      ),
+    );
+  }
 
   void _onAddCigarette(BuildContext context) {
     context.read<SmokingBloc>().add(const AddSmokingRecord(count: 1));
@@ -82,11 +93,18 @@ class HomePage extends StatelessWidget {
             Icon(Icons.smoke_free_rounded, size: 24),
             SizedBox(width: 8),
             Text(
-              'Учёт выкуренных сигарет',
+              'Учёт сигарет',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report_outlined),
+            tooltip: 'Логи приложения (Talker)',
+            onPressed: () => _openTalkerScreen(context),
+          ),
+        ],
       ),
       body: BlocSignalConsumer<SmokingBloc, SmokingState>(
         listener: (context, state) {

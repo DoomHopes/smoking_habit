@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Проверяем отображение заголовка и статистики
-    expect(find.text('Учёт выкуренных сигарет'), findsOneWidget);
+    expect(find.text('Учёт сигарет'), findsOneWidget);
     expect(find.text('Сегодня'), findsOneWidget);
     expect(find.text('Всего'), findsOneWidget);
 

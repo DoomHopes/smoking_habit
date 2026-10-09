@@ -1,6 +1,9 @@
+import 'dart:ui';
 import 'package:bloc_signals_flutter/bloc_signals_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:talker_flutter/talker_flutter.dart';
 
+import 'core/logging/app_talker.dart';
 import 'data/datasources/sqlite_smoking_local_datasource.dart';
 import 'data/repositories/smoking_repository_impl.dart';
 import 'presentation/bloc/smoking_bloc.dart';
@@ -9,6 +12,19 @@ import 'presentation/pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Глобальный перехват ошибок Flutter фреймворка
+  FlutterError.onError = (details) {
+    talker.handle(details.exception, details.stack, 'Flutter Error');
+  };
+
+  // Перехват асинхронных ошибок платформы
+  PlatformDispatcher.instance.onError = (error, stack) {
+    talker.handle(error, stack, 'Uncaught Platform Error');
+    return true;
+  };
+
+  talker.info('Инициализация приложения Smoking Habit');
 
   // Инициализация слоев данных и репозитория
   final localDataSource = SqliteSmokingLocalDataSource();
@@ -37,17 +53,20 @@ class SmokingHabitApp extends StatelessWidget {
         title: 'Учёт сигарет',
         debugShowCheckedModeBanner: false,
         themeMode: ThemeMode.system,
+        navigatorObservers: [
+          TalkerRouteObserver(talker),
+        ],
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepOrange,
+            seedColor: const Color(0xFF10B981), // Современный изумрудно-зеленый
             brightness: Brightness.light,
           ),
         ),
         darkTheme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepOrange,
+            seedColor: const Color(0xFF10B981),
             brightness: Brightness.dark,
           ),
         ),

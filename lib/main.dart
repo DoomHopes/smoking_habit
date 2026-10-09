@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
 import 'core/logging/app_talker.dart';
+import 'core/services/desktop_tray_service.dart';
 import 'data/datasources/sqlite_smoking_local_datasource.dart';
 import 'data/repositories/smoking_repository_impl.dart';
 import 'presentation/bloc/smoking_bloc.dart';
@@ -30,6 +31,10 @@ void main() async {
   final localDataSource = SqliteSmokingLocalDataSource();
   final repository = SmokingRepositoryImpl(localDataSource);
   final smokingBloc = SmokingBloc(repository)..add(const LoadSmokingRecords());
+
+  // Инициализация сервиса системного трея и оконного менеджера
+  final trayService = DesktopTrayService(smokingBloc: smokingBloc);
+  await trayService.initialize();
 
   runApp(
     SmokingHabitApp(smokingBloc: smokingBloc),
